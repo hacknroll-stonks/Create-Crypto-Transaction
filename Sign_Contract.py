@@ -1,23 +1,30 @@
-from web3 import Web3, EthereumTesterProvider
+from web3 import Account
 import os
 import segno
 
 def signContract(to, value, privateKey):
-    w3 = Web3(Web3.WebsocketProvider('wss://eth-sepolia.g.alchemy.com/v2/' + os.environ["Alchemy_API"]))
-    acct = w3.eth.account.from_key(privateKey)
+    # w3 = Web3(Web3.WebsocketProvider('wss://eth-sepolia.g.alchemy.com/v2/' + os.environ["Alchemy_API"]))
     value = value*(10**18)
+    with open("Nounce.txt", "r") as file:
+        #print(file.read())
+        nounce = int(file.read().strip())
+
+    nounce += 1
+    with open("Nounce.txt", "w") as file:
+        file.write(str(nounce))
+
     contract = {
-        "from": acct.address,
+        "from": Account.from_key(privateKey).address,
         "to": to,
         'gas': 21000,
         'maxFeePerGas': 2000000000,
         'maxPriorityFeePerGas': 1000000000,
-        "nonce": w3.eth.get_transaction_count(acct.address),
+        "nonce": nounce,
         'chainId': 11155111,
         "value": int(value)
     }
     # 2. Sign tx with a private key
-    signed = w3.eth.account.sign_transaction(contract, privateKey)
+    signed = Account.sign_transaction(contract, privateKey)
     print(f"Raw tx: {signed.rawTransaction.hex()}")
 
     segno.make_qr(signed.rawTransaction).save("Transaction_QR_Code.png", scale = 100)
